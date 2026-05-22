@@ -18,7 +18,8 @@ Aplikasi ini menggunakan arsitektur **Hybrid Database Adapter** yang mendukung d
 - **Inventaris & Manajemen Stok Real-Time**:
   - CRUD produk lengkap (SKU, nama, harga beli modal, harga jual, stok, kategori).
   - Alergi visual stok menipis (badge berdenyut merah di bawah 5 item) & tombol disable otomatis jika stok habis.
-  - **Tambah Stok Massal**: Menambahkan stok ke seluruh produk secara bersamaan dengan cepat.
+  - **Tambah Produk Massal**: Menambahkan banyak produk baru sekaligus dengan fitur *Auto-Generate SKU* yang cerdas (otomatis mengurutkan nomor unik berdasarkan kategori, misal: `MA-001` untuk Makanan, `MU-001` untuk Minuman).
+  - **Tambah Stok Massal**: Menambahkan kuantitas stok ke seluruh produk secara bersamaan dengan cepat.
 - **CRM & Manajemen Pelanggan**:
   - Pencatatan pelanggan tetap (nama, WhatsApp).
   - Penghitungan loyalty points otomatis (1 poin setiap pembelanjaan Rp 10.000).
@@ -31,8 +32,10 @@ Aplikasi ini menggunakan arsitektur **Hybrid Database Adapter** yang mendukung d
 - **Shift & Multi-Role Pengguna**:
   - Simulasi otentikasi login kasir vs. admin.
   - Pembatasan hak akses (kasir hanya bisa transaksi & kelola shift mereka; admin memiliki akses penuh ke laporan laba rugi dan pengaturan).
+  - **Keamanan Buka Shift (Verifikasi Wajah)**: Fitur pembukaan shift yang mewajibkan kasir mengambil foto wajah *real-time* via *webcam*/kamera perangkat sebelum mulai bertugas.
   - Sistem kas laci (input laci kas awal, pelacakan nominal tunai, perhitungan selisih/discrepancy saat shift ditutup, rekap log shift).
   - Fitur **Koreksi Selisih Laci** (Admin) untuk menyesuaikan data aktual shift yang didukung dengan sistem validasi **Kode Otorisasi Harian** unik dari Kasir.
+  - **Pemantauan Shift Admin**: Tampilan panel admin yang memperlihatkan foto profil *real-time* dan waktu mulai dari kasir yang sedang aktif bertugas.
   - Opsi reset riwayat tutup shift untuk pembersihan log kas.
 - **Pengaturan & Branding Toko**:
   - Mengubah nama, alamat, nomor telepon, dan pesan struk toko secara dinamis.

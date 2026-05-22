@@ -81,7 +81,7 @@
           <i class="fa-solid fa-power-off"></i> Keluar
         </button>
 
-        <div style="text-align: center; font-size: 10px; margin-top: auto; padding-top: 20px; color: var(--text-muted);">
+        <div style="text-align: center; font-size: 10px; margin-top: 15px; padding-top: 20px; color: var(--text-muted);">
           <a href="https://kenzodchjandcuh.github.io/Web-Kasir-By-Kenzo-Project/admin.html" style="color: inherit; text-decoration: none; font-weight: bold;">Web Kasir Online</a> © 2026<br>by <a href="https://kenzodchjandcuh.github.io/cv/" style="color: inherit; text-decoration: none;">Kenzo Project Developer</a><br><span style="font-size: 8px;">CC BY-ND 4.0</span>
           <div style="margin-top: 5px;">
             <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1.2em;max-height:1.2em; opacity: 0.7;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1.2em;max-height:1.2em;margin-left: .2em; opacity: 0.7;"><img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" alt="" style="max-width: 1.2em;max-height:1.2em;margin-left: .2em; opacity: 0.7;">
@@ -317,14 +317,41 @@
         <h3 class="modal-title">Buka Shift Laci Baru</h3>
       </div>
       <form id="form-shift-start">
-        <div class="modal-body">
-          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
-            Masukkan saldo modal kas laci awal untuk melacak kembalian tunai di dalam laci uang sebelum transaksi kasir
-            pertama dimulai.
-          </p>
-          <div class="form-group">
-            <label class="form-label">Modal Kas Laci Awal (Rp)</label>
-            <input type="number" class="form-control" id="shift-starting-cash" required value="100000" min="0">
+        <div class="modal-body" style="text-align: center;">
+          <i class="fa-solid fa-cash-register" style="font-size: 40px; color: var(--primary); margin-bottom: 15px;"></i>
+          <p style="margin-bottom: 20px; color: var(--text-muted); font-size: 14px;">Masukkan informasi kasir dan modal awal laci untuk memulai shift.</p>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Foto Verifikasi Kasir</label>
+              <div style="background: rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; position: relative; width: 100%; aspect-ratio: 4/3; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-glass);">
+                <video id="shift-camera-feed" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                <img id="shift-photo-preview" style="width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; z-index: 2;">
+                <div id="shift-camera-placeholder" style="position: absolute; color: var(--text-muted); text-align: center; z-index: 1; display: none;">
+                  <i class="fa-solid fa-camera" style="font-size: 24px; margin-bottom: 8px;"></i><br>
+                  <span style="font-size: 12px;">Kamera Dinonaktifkan</span>
+                </div>
+              </div>
+              <button type="button" class="btn-secondary" id="btn-take-photo" onclick="window.App.handleTakePhoto()" style="width: 100%;">
+                <i class="fa-solid fa-camera"></i> Ambil Foto
+              </button>
+              <button type="button" class="btn-secondary" id="btn-retake-photo" onclick="window.App.handleRetakePhoto()" style="width: 100%; display: none; margin-top: 8px;">
+                <i class="fa-solid fa-rotate-right"></i> Ulangi Foto
+              </button>
+              <input type="hidden" id="shift-cashier-photo">
+              <canvas id="shift-camera-canvas" style="display: none;"></canvas>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Nama Kasir</label>
+                <input type="text" class="form-control" id="shift-cashier-name" required placeholder="Contoh: Budi Santoso">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Modal Kas Laci Awal (Rp)</label>
+                <input type="number" class="form-control" id="shift-starting-cash" required value="100000" min="0">
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">

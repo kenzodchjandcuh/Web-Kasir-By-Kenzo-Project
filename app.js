@@ -289,6 +289,9 @@ function closeModal(modalId) {
     clearTimeout(state.qrisTimer);
     state.qrisTimer = null;
   }
+  if (modalId === 'modal-shift-start') {
+    if (typeof stopShiftCamera === 'function') stopShiftCamera();
+  }
 }
 
 // Get User Profile Details
@@ -1838,7 +1841,13 @@ function renderShiftTabDetails() {
     const s = state.activeShift;
     const totalExpected = s.startingCash + s.cashSales;
 
+    const photoHTML = s.cashierPhoto ? 
+      `<div style="text-align: center; margin-bottom: 12px;">
+         <img src="${s.cashierPhoto}" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
+       </div>` : '';
+
     currentActiveSection.innerHTML = `
+      ${photoHTML}
       <div style="font-size: 13px; display: flex; flex-direction: column; gap: 8px;">
         <div><span>Petugas Aktif:</span> <strong style="float: right;">${s.cashierName}</strong></div>
         <div><span>Waktu Buka Shift:</span> <strong style="float: right;">${new Date(s.openedAt).toLocaleString('id-ID')}</strong></div>
@@ -1941,6 +1950,7 @@ function renderShiftTabDetails() {
 
 function initOpenShiftModal() {
   openModal('modal-shift-start');
+  if (typeof startShiftCamera === 'function') startShiftCamera();
 }
 
 function initEditShiftModal(id) {
@@ -1975,9 +1985,93 @@ function initCloseShiftModal() {
   openModal('modal-shift-end');
 }
 
+window.shiftCameraStream = null;
+
+async function startShiftCamera() {
+  const feed = document.getElementById('shift-camera-feed');
+  const placeholder = document.getElementById('shift-camera-placeholder');
+  const preview = document.getElementById('shift-photo-preview');
+  const btnTake = document.getElementById('btn-take-photo');
+  const btnRetake = document.getElementById('btn-retake-photo');
+  const hiddenPhoto = document.getElementById('shift-cashier-photo');
+  
+  if (!feed) return; 
+  
+  preview.style.display = 'none';
+  preview.src = '';
+  if(hiddenPhoto) hiddenPhoto.value = '';
+  if(btnTake) btnTake.style.display = 'block';
+  if(btnRetake) btnRetake.style.display = 'none';
+  if(placeholder) {
+    placeholder.style.display = 'block';
+    placeholder.innerHTML = '<i class="fa-solid fa-camera" style="font-size: 24px; margin-bottom: 8px;"></i><br><span style="font-size: 12px;">Meminta akses kamera...</span>';
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    window.shiftCameraStream = stream;
+    feed.srcObject = stream;
+    feed.style.display = 'block';
+    if(placeholder) placeholder.style.display = 'none';
+  } catch (err) {
+    console.error("Camera error:", err);
+    if(placeholder) placeholder.innerHTML = '<i class="fa-solid fa-camera-slash" style="font-size: 24px; margin-bottom: 8px; color: var(--danger);"></i><br><span style="font-size: 12px;">Kamera Tidak Tersedia</span>';
+  }
+}
+
+function stopShiftCamera() {
+  if (window.shiftCameraStream) {
+    window.shiftCameraStream.getTracks().forEach(track => track.stop());
+    window.shiftCameraStream = null;
+  }
+}
+
+function handleTakePhoto() {
+  const feed = document.getElementById('shift-camera-feed');
+  const canvas = document.getElementById('shift-camera-canvas');
+  const preview = document.getElementById('shift-photo-preview');
+  const hiddenPhoto = document.getElementById('shift-cashier-photo');
+  const btnTake = document.getElementById('btn-take-photo');
+  const btnRetake = document.getElementById('btn-retake-photo');
+
+  if (!feed || !window.shiftCameraStream) return;
+
+  const context = canvas.getContext('2d');
+  canvas.width = 320;
+  canvas.height = 240;
+  context.drawImage(feed, 0, 0, canvas.width, canvas.height);
+  
+  const dataURL = canvas.toDataURL('image/jpeg', 0.6);
+  preview.src = dataURL;
+  hiddenPhoto.value = dataURL;
+  
+  feed.style.display = 'none';
+  preview.style.display = 'block';
+  btnTake.style.display = 'none';
+  btnRetake.style.display = 'block';
+}
+
+function handleRetakePhoto() {
+  const feed = document.getElementById('shift-camera-feed');
+  const preview = document.getElementById('shift-photo-preview');
+  const hiddenPhoto = document.getElementById('shift-cashier-photo');
+  const btnTake = document.getElementById('btn-take-photo');
+  const btnRetake = document.getElementById('btn-retake-photo');
+
+  preview.style.display = 'none';
+  preview.src = '';
+  hiddenPhoto.value = '';
+  
+  feed.style.display = 'block';
+  btnTake.style.display = 'block';
+  btnRetake.style.display = 'none';
+}
+
 // ================= EVENT LISTENERS & HOTKEYS =================
 
 function setupFormListeners() {
+  bindEvent('btn-take-photo', 'click', handleTakePhoto);
+  bindEvent('btn-retake-photo', 'click', handleRetakePhoto);
   // 1. Product Form Submit
   bindEvent('form-product', 'submit', async (e) => {
     e.preventDefault();
@@ -2041,9 +2135,23 @@ function setupFormListeners() {
   bindEvent('form-shift-start', 'submit', async (e) => {
     e.preventDefault();
     const startingCash = parseFloat(document.getElementById('shift-starting-cash').value) || 0;
+    const inputName = document.getElementById('shift-cashier-name').value.trim();
+    const photoEl = document.getElementById('shift-cashier-photo');
+    const inputPhoto = photoEl ? photoEl.value : '';
+    
+    if(!inputName) {
+      showToast('Harap masukkan nama kasir!', 'error');
+      return;
+    }
+    
+    if(photoEl && !inputPhoto) {
+      showToast('Harap ambil foto verifikasi!', 'error');
+      return;
+    }
     
     const shift = {
-      cashierName: state.currentUser.name,
+      cashierName: inputName,
+      cashierPhoto: inputPhoto,
       openedAt: new Date().toISOString(),
       closedAt: null,
       startingCash,
@@ -2319,24 +2427,147 @@ function setupButtonListeners() {
     }
   });
 
+  // Helper to add bulk row
+  window.App = window.App || {};
+
+  window.App.generateSKU = function(category, skipSkus = []) {
+    const prefixMap = {
+      'Makanan': 'MA',
+      'Minuman': 'MU',
+      'Cemilan': 'CE',
+      'Lainnya': 'LA'
+    };
+    const prefix = prefixMap[category] || 'PR';
+    
+    let maxNum = 0;
+    
+    // Check existing products
+    for (const p of state.products) {
+      if (p.sku && p.sku.startsWith(prefix + '-')) {
+        const numPart = parseInt(p.sku.replace(prefix + '-', ''), 10);
+        if (!isNaN(numPart) && numPart > maxNum) {
+          maxNum = numPart;
+        }
+      }
+    }
+    
+    // Check skipSkus (other rows in modal)
+    for (const sku of skipSkus) {
+      if (sku && sku.startsWith(prefix + '-')) {
+        const numPart = parseInt(sku.replace(prefix + '-', ''), 10);
+        if (!isNaN(numPart) && numPart > maxNum) {
+          maxNum = numPart;
+        }
+      }
+    }
+    
+    const nextNum = maxNum + 1;
+    return `${prefix}-${nextNum.toString().padStart(3, '0')}`;
+  };
+
+  window.App.updateRowSKU = function(row) {
+    const catSelect = row.querySelector('.bulk-cat');
+    const skuInput = row.querySelector('.bulk-sku');
+    if(!catSelect || !skuInput) return;
+    const category = catSelect.value;
+    
+    const allSkuInputs = document.querySelectorAll('#bulk-add-tbody .bulk-sku');
+    const skipSkus = [];
+    allSkuInputs.forEach(input => {
+      if (input !== skuInput && input.value) {
+        skipSkus.push(input.value);
+      }
+    });
+    
+    skuInput.value = window.App.generateSKU(category, skipSkus);
+  };
+
+  window.App.addBulkProductRow = function() {
+    const tbody = document.getElementById('bulk-add-tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="padding: 5px;"><input type="text" class="form-control bulk-sku" placeholder="SKU" required readonly style="background: var(--bg-tertiary); cursor: not-allowed; font-weight: bold; color: var(--text-main);"></td>
+      <td style="padding: 5px;"><input type="text" class="form-control bulk-name" placeholder="Nama" required></td>
+      <td style="padding: 5px;">
+        <select class="form-control bulk-cat" required>
+          <option value="Makanan">Makanan</option>
+          <option value="Minuman">Minuman</option>
+          <option value="Cemilan">Cemilan</option>
+          <option value="Lainnya">Lainnya</option>
+        </select>
+      </td>
+      <td style="padding: 5px;"><input type="number" class="form-control bulk-stock" value="10" min="0" required></td>
+      <td style="padding: 5px;"><input type="number" class="form-control bulk-buy" placeholder="Hrg Modal" min="0" required></td>
+      <td style="padding: 5px;"><input type="number" class="form-control bulk-sell" placeholder="Hrg Jual" min="0" required></td>
+      <td style="padding: 5px; text-align: center;"><button type="button" class="btn-icon" style="color: #ef4444;" onclick="this.closest('tr').remove()"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+    
+    const catSelect = tr.querySelector('.bulk-cat');
+    catSelect.addEventListener('change', () => {
+      window.App.updateRowSKU(tr);
+    });
+
+    tbody.appendChild(tr);
+    window.App.updateRowSKU(tr);
+  };
+
+  bindEvent('btn-add-bulk-row', 'click', () => {
+    if(window.App.addBulkProductRow) window.App.addBulkProductRow();
+  });
+
+  bindEvent('form-bulk-add-product', 'submit', async (e) => {
+    e.preventDefault();
+    const tbody = document.getElementById('bulk-add-tbody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    if(rows.length === 0) {
+      showToast('Tambahkan minimal 1 produk.', 'warning');
+      return;
+    }
+
+    let addedCount = 0;
+    for(let row of rows) {
+      const sku = row.querySelector('.bulk-sku').value.trim();
+      const name = row.querySelector('.bulk-name').value.trim();
+      const cat = row.querySelector('.bulk-cat').value;
+      const stock = parseInt(row.querySelector('.bulk-stock').value, 10);
+      const buyPrice = parseInt(row.querySelector('.bulk-buy').value, 10);
+      const sellPrice = parseInt(row.querySelector('.bulk-sell').value, 10);
+
+      if(sku && name) {
+        const newProd = {
+          id: 'prod_' + Date.now() + Math.random().toString(36).substr(2, 5),
+          sku,
+          name,
+          category: cat,
+          stock,
+          buyPrice,
+          sellPrice
+        };
+        state.products.push(newProd);
+        addedCount++;
+      }
+    }
+
+    if(addedCount > 0) {
+      localStorage.setItem('aeropos_products', JSON.stringify(state.products));
+      if (window.FirebaseDB && window.FirebaseDB.isConnected) {
+        for (const p of state.products) {
+          await window.FirebaseDB.saveProduct(p);
+        }
+      }
+      renderInventoryAdmin();
+      closeModal('modal-bulk-add-product');
+      showToast(`Berhasil menambahkan ${addedCount} produk baru.`, 'success');
+    }
+  });
+
   // Inventory Add Product modal trigger
   bindEvent('inventory-add-btn', 'click', () => {
-    const titleEl = document.getElementById('modal-product-title');
-    const idEl = document.getElementById('prod-id');
-    const skuEl = document.getElementById('prod-sku');
-    const nameEl = document.getElementById('prod-name');
-    const stockEl = document.getElementById('prod-stock');
-    const buyEl = document.getElementById('prod-buy-price');
-    const sellEl = document.getElementById('prod-sell-price');
-
-    if (titleEl) titleEl.textContent = 'Tambah Produk Baru';
-    if (idEl) idEl.value = '';
-    if (skuEl) skuEl.value = '';
-    if (nameEl) nameEl.value = '';
-    if (stockEl) stockEl.value = '10';
-    if (buyEl) buyEl.value = '';
-    if (sellEl) sellEl.value = '';
-    openModal('modal-product');
+    const tbody = document.getElementById('bulk-add-tbody');
+    if(tbody) tbody.innerHTML = ''; // clear table
+    if(window.App.addBulkProductRow) window.App.addBulkProductRow(); // add first row
+    openModal('modal-bulk-add-product');
   });
 
   // Customer Add Modal trigger
@@ -2566,5 +2797,7 @@ window.App = {
   reprintTransaction,
   initOpenShiftModal,
   initCloseShiftModal,
-  initEditShiftModal
+  initEditShiftModal,
+  handleTakePhoto,
+  handleRetakePhoto
 };

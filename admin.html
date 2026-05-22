@@ -94,7 +94,7 @@
           <i class="fa-solid fa-power-off"></i> Keluar
         </button>
 
-        <div style="text-align: center; font-size: 10px; margin-top: auto; padding-top: 20px; color: var(--text-muted);">
+        <div style="text-align: center; font-size: 10px; margin-top: 15px; padding-top: 20px; color: var(--text-muted);">
           <a href="https://kenzodchjandcuh.github.io/Web-Kasir-By-Kenzo-Project/admin.html" style="color: inherit; text-decoration: none; font-weight: bold;">Web Kasir Online</a> © 2026<br>by <a href="https://kenzodchjandcuh.github.io/cv/" style="color: inherit; text-decoration: none;">Kenzo Project Developer</a><br><span style="font-size: 8px;">CC BY-ND 4.0</span>
           <div style="margin-top: 5px;">
             <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1.2em;max-height:1.2em; opacity: 0.7;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1.2em;max-height:1.2em;margin-left: .2em; opacity: 0.7;"><img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" alt="" style="max-width: 1.2em;max-height:1.2em;margin-left: .2em; opacity: 0.7;">
@@ -646,7 +646,7 @@
   <div class="modal-overlay" id="modal-product">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title" id="modal-product-title">Tambah Produk Baru</h3>
+        <h3 class="modal-title" id="modal-product-title">Edit Produk</h3>
         <button class="btn-close-modal" data-close="modal-product">&times;</button>
       </div>
       <form id="form-product">
@@ -694,6 +694,43 @@
     </div>
   </div>
 
+  <!-- Modal Bulk Add Product -->
+  <div class="modal-overlay" id="modal-bulk-add-product">
+    <div class="modal-content" style="max-width: 900px; width: 95%;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-boxes-stacked"></i> Tambah Produk Sekaligus</h3>
+        <button class="btn-close-modal" data-close="modal-bulk-add-product">&times;</button>
+      </div>
+      <form id="form-bulk-add-product">
+        <div class="modal-body" style="padding: 15px; overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; min-width: 750px;">
+            <thead>
+              <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-glass);">
+                <th style="padding: 10px; text-align: left; width: 15%; font-size: 12px;">SKU / Barcode</th>
+                <th style="padding: 10px; text-align: left; width: 20%; font-size: 12px;">Nama Produk</th>
+                <th style="padding: 10px; text-align: left; width: 15%; font-size: 12px;">Kategori</th>
+                <th style="padding: 10px; text-align: left; width: 10%; font-size: 12px;">Stok</th>
+                <th style="padding: 10px; text-align: left; width: 15%; font-size: 12px;">Harga Modal</th>
+                <th style="padding: 10px; text-align: left; width: 15%; font-size: 12px;">Harga Jual</th>
+                <th style="padding: 10px; text-align: center; width: 10%; font-size: 12px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="bulk-add-tbody">
+              <!-- Rows injected via JS -->
+            </tbody>
+          </table>
+          <button type="button" class="btn-secondary" id="btn-add-bulk-row" style="margin-top: 15px;">
+            <i class="fa-solid fa-plus"></i> Tambah Baris Kosong
+          </button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="modal-bulk-add-product">Batal</button>
+          <button type="submit" class="btn-primary-action"><i class="fa-solid fa-save"></i> Simpan Semua</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal 2: CRM Customer Form -->
   <div class="modal-overlay" id="modal-customer">
     <div class="modal-content">
@@ -730,9 +767,12 @@
       <form id="form-shift-start">
         <div class="modal-body">
           <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
-            Masukkan saldo modal kas laci awal untuk melacak kembalian tunai di dalam laci uang sebelum transaksi kasir
-            pertama dimulai.
+            Masukkan nama kasir dan saldo modal kas laci awal untuk memulai shift.
           </p>
+          <div class="form-group">
+            <label class="form-label">Nama Kasir</label>
+            <input type="text" class="form-control" id="shift-cashier-name" required placeholder="Contoh: Budi Santoso">
+          </div>
           <div class="form-group">
             <label class="form-label">Modal Kas Laci Awal (Rp)</label>
             <input type="number" class="form-control" id="shift-starting-cash" required value="100000" min="0">
