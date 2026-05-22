@@ -104,3 +104,9 @@ Aplikasi Kasir/
 ├── firebase-db.js    # Konektor Firebase Firestore dengan offline caching
 └── README.md         # Dokumentasi petunjuk penggunaan aplikasi
 ```
+
+---
+
+<p align="center">
+  <a href="https://kenzodchjandcuh.github.io/Web-Kasir-By-Kenzo-Project/admin.html">Web Kasir Online</a> © 2026 by <a href="https://kenzodchjandcuh.github.io/cv/">Kenzo Project Developer</a> is licensed under <a href="https://creativecommons.org/licenses/by-nd/4.0/">Creative Commons Attribution-NoDerivatives 4.0 International</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/nd.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
+</p>
