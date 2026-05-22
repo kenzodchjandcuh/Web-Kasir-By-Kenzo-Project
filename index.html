@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kenzo_Project - Login</title>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Fonts -->
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap">
+
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.25);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.25);
+      --font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: var(--font-family);
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 40%);
+      color: var(--text-main);
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      padding: 20px;
+    }
+
+    /* Glassmorphic Login Container */
+    .login-container {
+      background: rgba(30, 41, 59, 0.45);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      padding: 40px 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Logo & Header */
+    .login-header {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+
+    .brand-logo {
+      width: 54px;
+      height: 54px;
+      background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 15px auto;
+      font-size: 24px;
+      font-weight: 800;
+      color: white;
+      box-shadow: 0 0 25px rgba(99, 102, 241, 0.45);
+      overflow: hidden;
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      background: linear-gradient(to right, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      color: var(--text-muted);
+      font-size: 14px;
+      transition: color 0.25s ease;
+    }
+
+    .form-control {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 13px 15px 13px 42px;
+      color: var(--text-main);
+      font-size: 14px;
+      transition: all 0.25s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      background: rgba(15, 23, 42, 0.8);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .form-control:focus+.input-icon {
+      color: var(--primary);
+    }
+
+    /* Login Button */
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-login:hover {
+      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-login:active {
+      transform: translateY(1px);
+    }
+
+    /* Toast Notification System */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .toast {
+      background: rgba(30, 41, 59, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 280px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      transform: translateX(120%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--danger);
+    }
+
+    .toast-icon {
+      font-size: 18px;
+    }
+
+    .toast.error .toast-icon {
+      color: var(--danger);
+    }
+
+    .toast-message {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-container">
+    <div class="login-header">
+      <div class="brand-logo" id="login-brand-icon">A</div>
+      <h1 class="brand-title" id="login-brand-title">AeroPOS</h1>
+      <span class="brand-subtitle">Sistem Kasir Pintar & POS Modern</span>
+    </div>
+
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <div class="input-wrapper">
+          <input type="text" class="form-control" id="username" required placeholder="Masukkan username"
+            autocomplete="username">
+          <i class="fa-solid fa-user input-icon"></i>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-wrapper">
+          <input type="password" class="form-control" id="password" required placeholder="Masukkan password"
+            autocomplete="current-password">
+          <i class="fa-solid fa-lock input-icon"></i>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" id="btn-submit">
+        <span>MASUK KE POS</span>
+        <i class="fa-solid fa-right-to-bracket"></i>
+      </button>
+    </form>
+
+    <!-- Login Credentials Hint -->
+    <div
+      style="margin-top: 20px; padding: 12px; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 10px; font-size: 11px; text-align: center; color: var(--text-muted); line-height: 1.5;">
+      <i class="fa-solid fa-circle-info" style="color: var(--primary); margin-right: 4px;"></i>
+      <strong>Akun Demo Bawaan:</strong><br>
+      Admin: <span style="color: var(--text-main); font-family: monospace;">admin</span> / <span
+        style="color: var(--text-main); font-family: monospace;">123</span> &nbsp;|&nbsp;
+      Kasir: <span style="color: var(--text-main); font-family: monospace;">kasir</span> / <span
+        style="color: var(--text-main); font-family: monospace;">123</span>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-holder"></div>
+
+  <!-- LocalDB is required to check credentials -->
+  <script src="local-db.js"></script>
+
+  <script>
+    // Custom Toast function
+    function showToast(message, type = 'error') {
+      const container = document.getElementById('toast-holder');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      const icon = type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check';
+
+      toast.innerHTML = `
+        <i class="fa-solid ${icon} toast-icon"></i>
+        <span class="toast-message">${message}</span>
+      `;
+
+      container.appendChild(toast);
+
+      // Animation trigger
+      setTimeout(() => toast.classList.add('show'), 50);
+
+      // Auto remove
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Handle Form Submit
+    document.getElementById('login-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const usernameInput = document.getElementById('username').value.trim();
+      const passwordInput = document.getElementById('password').value.trim();
+
+      // Load users from LocalDB
+      if (!window.LocalDB) {
+        showToast('Gagal memuat modul database lokal.');
+        return;
+      }
+
+      const users = window.LocalDB.getUsers();
+      const matchedUser = users.find(u => u.username === usernameInput && u.password === passwordInput);
+
+      if (matchedUser) {
+        // Successful login
+        // Store session (excluding password for security)
+        const sessionUser = {
+          id: matchedUser.id,
+          username: matchedUser.username,
+          name: matchedUser.name,
+          role: matchedUser.role
+        };
+
+        sessionStorage.setItem('aeropos_current_user', JSON.stringify(sessionUser));
+
+        // Redirect based on role
+        if (matchedUser.role === 'Admin') {
+          window.location.href = 'admin.html';
+        } else if (matchedUser.role === 'Kasir') {
+          window.location.href = 'kasir.html';
+        } else {
+          showToast('Peran pengguna tidak dikenal!');
+        }
+      } else {
+        // Failed login
+        showToast('Username atau password salah.');
+      }
+    });
+
+    // Check if user is already logged in and load profile
+    (function () {
+      // Load store profile for branding
+      try {
+        const stored = localStorage.getItem('aeropos_store_profile');
+        if (stored) {
+          const profile = JSON.parse(stored);
+          const brandIcon = document.getElementById('login-brand-icon');
+          const brandTitle = document.getElementById('login-brand-title');
+
+          if (profile.name && brandTitle) {
+            brandTitle.textContent = profile.name;
+          }
+          if (profile.logo) {
+            if (brandIcon) {
+              brandIcon.innerHTML = `<img src="${profile.logo}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`;
+              brandIcon.style.background = 'transparent';
+              brandIcon.style.boxShadow = 'none';
+            }
+            
+            // Update Favicon
+            let favicon = document.querySelector('link[rel="icon"]');
+            if (!favicon) {
+              favicon = document.createElement('link');
+              favicon.rel = 'icon';
+              document.head.appendChild(favicon);
+            }
+            favicon.href = profile.logo;
+          }
+        }
+      } catch (e) {
+        console.error('Error loading store profile', e);
+      }
+
+      const sessionUser = sessionStorage.getItem('aeropos_current_user');
+      if (sessionUser) {
+        try {
+          const user = JSON.parse(sessionUser);
+          if (user.role === 'Admin') {
+            window.location.href = 'admin.html';
+          } else if (user.role === 'Kasir') {
+            window.location.href = 'kasir.html';
+          }
+        } catch (e) { }
+      }
+    })();
+  </script>
+</body>
+
+</html>

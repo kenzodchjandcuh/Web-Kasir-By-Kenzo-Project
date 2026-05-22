@@ -1,0 +1,118 @@
+/* receipt.css - Media Print Styling for POS Thermal Receipt Roll */
+
+@media print {
+  html, body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    font-size: 11px !important;
+  }
+
+  /* Hide entire POS Dashboard UI */
+  .app-container, aside, main, header, .modal-overlay, .toast-container {
+    display: none !important;
+  }
+
+  #receipt-print-area {
+    display: block !important;
+    width: 58mm; /* Standard narrow thermal receipt width. Can automatically fit 80mm roll. */
+    margin: 0 auto !important;
+    padding: 2mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    box-sizing: border-box;
+  }
+}
+
+/* Screen Preview styles (for reference inside temporary rendering iframe) */
+#receipt-print-area {
+  width: 58mm;
+  padding: 4mm;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0 auto;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.receipt-store-name {
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.receipt-store-address, .receipt-store-phone {
+  font-size: 9px;
+  margin-bottom: 1px;
+}
+
+.receipt-divider {
+  border-top: 1px dashed #000000;
+  margin: 6px 0;
+  width: 100%;
+}
+
+.receipt-meta {
+  font-size: 9px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.receipt-meta-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.receipt-item-row {
+  margin-bottom: 6px;
+}
+
+.receipt-item-name {
+  font-weight: bold;
+  word-break: break-word;
+}
+
+.receipt-item-details {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 8px;
+  font-size: 10px;
+}
+
+.receipt-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.receipt-total-row.grand-total {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.receipt-footer {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 9px;
+  text-transform: uppercase;
+}

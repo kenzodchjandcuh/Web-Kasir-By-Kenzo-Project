@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kenzo_Project - Dasbor Admin</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- Receipt Stylesheet (for print reference) -->
+  <link rel="stylesheet" href="receipt.css" media="screen">
+  <script>
+    (function () {
+      const userSession = sessionStorage.getItem('aeropos_current_user');
+      if (!userSession) {
+        window.location.href = 'index.html';
+        return;
+      }
+      try {
+        const user = JSON.parse(userSession);
+        if (user.role !== 'Admin') {
+          window.location.href = 'index.html';
+        }
+      } catch (e) {
+        window.location.href = 'index.html';
+      }
+    })();
+  </script>
+</head>
+
+<body>
+
+  <!-- UI Shell Layout -->
+  <div class="app-container">
+
+    <!-- Sidebar Navigation -->
+    <aside>
+      <div class="brand">
+        <div class="brand-icon" id="sidebar-brand-icon"></div>
+        <div class="brand-name" id="sidebar-brand-name"></div>
+      </div>
+
+      <nav>
+        <a class="nav-link active" id="nav-kasir" data-tab="kasir">
+          <i class="fa-solid fa-cash-register"></i>
+          <span>Transaksi Kasir</span>
+        </a>
+        <a class="nav-link" id="nav-inventaris" data-tab="inventaris">
+          <i class="fa-solid fa-box"></i>
+          <span>Inventaris & Stok</span>
+        </a>
+        <a class="nav-link" id="nav-pelanggan" data-tab="pelanggan">
+          <i class="fa-solid fa-users"></i>
+          <span>CRM & Pelanggan</span>
+        </a>
+        <a class="nav-link" id="nav-laporan" data-tab="laporan">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Laporan & Analitik</span>
+        </a>
+        <a class="nav-link" id="nav-shift" data-tab="shift">
+          <i class="fa-solid fa-user-clock"></i>
+          <span>Shift & Pengguna</span>
+        </a>
+        <a class="nav-link" id="nav-pengaturan" data-tab="pengaturan">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Pengaturan</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer (Active User and Shift Status) -->
+      <div class="sidebar-footer">
+        <div class="user-badge">
+          <div class="avatar" id="sidebar-user-avatar">A</div>
+          <div class="user-details">
+            <span class="user-name" id="sidebar-user-name">Administrator</span>
+            <span class="user-role" id="sidebar-user-role">Admin</span>
+          </div>
+        </div>
+
+        <div class="shift-info-box">
+          <div class="shift-title">Shift Aktif</div>
+          <div class="shift-status">
+            <span class="status-dot inactive" id="sidebar-shift-dot"></span>
+            <span id="sidebar-shift-text">Shift Belum Dibuka</span>
+          </div>
+        </div>
+
+        <button class="btn-sidebar-shift" id="sidebar-shift-action-btn" style="display: none;">Tutup Shift</button>
+        <button class="btn-sidebar-shift" id="btn-logout"
+          style="margin-top: 8px; background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); width: 100%;">
+          <i class="fa-solid fa-power-off"></i> Keluar
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Container -->
+    <main>
+      <!-- Top Navigation Header -->
+      <header>
+        <h2 class="header-title" id="page-header-title">
+          <i class="fa-solid fa-cash-register"></i> Transaksi Kasir
+        </h2>
+
+        <!-- Connection Banner Status -->
+        <div class="connection-banner demo" id="connection-banner">
+          <i class="fa-solid fa-database"></i>
+          <span id="connection-status-text">Mode Demo (Lokal)</span>
+        </div>
+      </header>
+
+      <!-- Panel 1: Kasir Screen -->
+      <div class="tab-panel active" id="panel-kasir">
+        <div class="kasir-container">
+          <!-- Left: Product Catalog -->
+          <div class="catalog-section">
+            <div class="search-filter-bar">
+              <div class="search-input-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="kasir-search-input"
+                  placeholder="Cari nama barang atau scan SKU Barcode (F2)...">
+              </div>
+            </div>
+
+            <!-- Category Chips Filter -->
+            <div class="category-scroll" id="kasir-category-chips">
+              <!-- Rendered Dynamically -->
+            </div>
+
+            <!-- Catalog Grid -->
+            <div class="product-grid" id="kasir-product-grid">
+              <!-- Rendered Dynamically -->
+            </div>
+          </div>
+
+          <!-- Right: Cart & Checkout drawer -->
+          <div class="cart-section">
+            <div class="cart-header">
+              <span class="cart-title"><i class="fa-solid fa-shopping-cart"></i> Keranjang</span>
+              <button class="cart-clear-btn" id="btn-clear-cart">
+                <i class="fa-solid fa-trash-can"></i> Kosongkan (ESC)
+              </button>
+            </div>
+
+            <!-- Cart Item list -->
+            <div class="cart-list" id="kasir-cart-list">
+              <!-- Rendered Dynamically -->
+            </div>
+
+            <!-- Cart totals and actions -->
+            <div class="checkout-panel">
+              <!-- CRM Selector -->
+              <div class="customer-selector-box">
+                <select class="customer-select" id="cart-customer-select">
+                  <option value="">-- Pilih Pelanggan (Umum) --</option>
+                  <!-- Rendered Dynamically -->
+                </select>
+                <button class="btn-add-customer" id="cart-add-customer-btn" title="Tambah Pelanggan Baru">
+                  <i class="fa-solid fa-user-plus"></i>
+                </button>
+              </div>
+
+              <!-- Discount & PPN -->
+              <div class="discount-tax-row">
+                <div class="input-group-pos">
+                  <span class="input-label-pos">Diskon (Nominal / %)</span>
+                  <div class="input-pos-wrapper">
+                    <span class="input-pos-prefix">Rp</span>
+                    <input type="text" class="input-pos" id="cart-discount-input" placeholder="0" value="0">
+                  </div>
+                </div>
+                <div class="input-group-pos">
+                  <span class="input-label-pos">Pajak PPN</span>
+                  <div class="input-pos-wrapper">
+                    <span class="input-pos-prefix">%</span>
+                    <input type="number" class="input-pos" id="cart-tax-input" placeholder="11" value="11" min="0"
+                      max="100">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Calculations -->
+              <div class="calculation-summary">
+                <div class="calc-row">
+                  <span>Subtotal:</span>
+                  <span class="calc-val-monospaced" id="cart-subtotal-val">Rp 0</span>
+                </div>
+                <div class="calc-row">
+                  <span>Diskon:</span>
+                  <span class="calc-val-monospaced" id="cart-discount-val">-Rp 0</span>
+                </div>
+                <div class="calc-row">
+                  <span>PPN:</span>
+                  <span class="calc-val-monospaced" id="cart-tax-val">Rp 0</span>
+                </div>
+                <div class="calc-row total-row">
+                  <span>Total Tagihan:</span>
+                  <span class="calc-val-monospaced" id="cart-total-val">Rp 0</span>
+                </div>
+              </div>
+
+              <!-- Checkout Pay Trigger -->
+              <button class="btn-pay-action" id="cart-pay-btn">
+                <i class="fa-solid fa-money-bill-wave"></i> BAYAR & CETAK (F4)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Inventaris & Stok -->
+      <div class="tab-panel" id="panel-inventaris">
+        <div class="panel-content-scrollable">
+          <div class="panel-header-action">
+            <div class="panel-search-bar">
+              <div class="search-input-wrapper" style="width: 320px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="inventory-search-input"
+                  placeholder="Cari SKU, nama, kategori...">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-secondary" id="inventory-bulk-add-btn">
+                <i class="fa-solid fa-layer-group"></i> Tambah Stok Semua
+              </button>
+              <button class="btn-primary-action" id="inventory-add-btn">
+                <i class="fa-solid fa-plus"></i> Tambah Produk Baru
+              </button>
+            </div>
+          </div>
+
+          <!-- Low Stock Warning Container -->
+          <div class="alert-warning-banner" id="inventory-low-stock-banner" style="display: none;">
+            <div class="alert-message">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <span id="inventory-low-stock-text">Terdapat 0 produk yang memiliki stok kritis di bawah 5 item.</span>
+            </div>
+          </div>
+
+          <!-- Products Table -->
+          <div class="table-responsive-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>SKU / Barcode</th>
+                  <th>Nama Produk</th>
+                  <th>Kategori</th>
+                  <th style="text-align: right;">Harga Beli</th>
+                  <th style="text-align: right;">Harga Jual</th>
+                  <th style="text-align: center;">Stok</th>
+                  <th style="text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-table-body">
+                <!-- Rendered Dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: CRM & Pelanggan -->
+      <div class="tab-panel" id="panel-pelanggan">
+        <div class="panel-content-scrollable">
+          <div class="panel-header-action">
+            <div class="panel-search-bar">
+              <div class="search-input-wrapper" style="width: 320px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="customer-search-input"
+                  placeholder="Cari nama atau nomor telepon...">
+              </div>
+            </div>
+
+            <button class="btn-primary-action" id="customer-add-btn">
+              <i class="fa-solid fa-user-plus"></i> Tambah Pelanggan
+            </button>
+          </div>
+
+          <!-- Customer Table -->
+          <div class="table-responsive-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nama Pelanggan</th>
+                  <th>Nomor HP</th>
+                  <th style="text-align: center;">Akumulasi Loyalty Point</th>
+                  <th style="text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="customer-table-body">
+                <!-- Rendered Dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: Laporan & Analitik Dashboard -->
+      <div class="tab-panel" id="panel-laporan">
+        <div class="panel-content-scrollable">
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+            <button class="btn-primary-action" id="btn-print-report" style="width: auto; padding: 10px 20px;">
+              <i class="fa-solid fa-print"></i> Cetak Laporan
+            </button>
+          </div>
+          <!-- Metrics Widgets -->
+          <div class="dashboard-metrics-grid">
+            <div class="metric-card">
+              <div class="metric-icon-box blue">
+                <i class="fa-solid fa-basket-shopping"></i>
+              </div>
+              <div class="metric-data-container">
+                <span class="metric-label">Jumlah Transaksi</span>
+                <span class="metric-value" id="report-tx-count">0</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box green">
+                <i class="fa-solid fa-coins"></i>
+              </div>
+              <div class="metric-data-container">
+                <span class="metric-label">Total Penjualan (Revenue)</span>
+                <span class="metric-value" id="report-revenue-val">Rp 0</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box yellow">
+                <i class="fa-solid fa-chart-line-up"></i>
+              </div>
+              <div class="metric-data-container">
+                <span class="metric-label">Laba Kotor</span>
+                <span class="metric-value" id="report-profit-val">Rp 0</span>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon-box red">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+              <div class="metric-data-container">
+                <span class="metric-label">Stok Kritis (< 5)</span>
+                    <span class="metric-value" id="report-low-stock-count">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visual Charts Grid -->
+          <div class="dashboard-charts-grid">
+            <!-- Line Chart: Daily Sales -->
+            <div class="chart-card">
+              <span class="chart-title">Grafik Penjualan Harian (7 Hari Terakhir)</span>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chart-daily-sales"></canvas>
+              </div>
+            </div>
+            <!-- Bar Chart: Best Sellers -->
+            <div class="chart-card">
+              <span class="chart-title">Produk Terlaris</span>
+              <div class="chart-canvas-wrapper">
+                <canvas id="chart-best-sellers"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Transaction Table -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 14px 0;">
+            <h3
+              style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 0;">
+              Riwayat Transaksi Terakhir</h3>
+            <div class="search-input-wrapper" style="width: auto;">
+              <i class="fa-solid fa-calendar" style="left: 12px;"></i>
+              <input type="date" class="search-input" id="report-date-filter"
+                style="padding: 8px 12px 8px 36px; height: 36px;">
+            </div>
+          </div>
+          <div class="table-responsive-wrapper" style="margin-bottom: 15px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>ID Struk</th>
+                  <th>Tanggal / Waktu</th>
+                  <th>Kasir</th>
+                  <th>Pelanggan</th>
+                  <th style="text-align: center;">Metode</th>
+                  <th style="text-align: right;">Total Belanja</th>
+                  <th style="text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="report-table-body">
+                <!-- Rendered Dynamically -->
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;" id="report-pagination">
+             <div style="font-size: 12px; color: var(--text-muted);" id="report-pagination-info">Menampilkan 0 transaksi</div>
+             <div style="display: flex; gap: 8px;">
+               <button class="btn-secondary" id="btn-report-prev" style="padding: 6px 12px; font-size: 12px;" disabled><i class="fa-solid fa-chevron-left"></i> Sebelumnya</button>
+               <button class="btn-secondary" id="btn-report-next" style="padding: 6px 12px; font-size: 12px;" disabled>Selanjutnya <i class="fa-solid fa-chevron-right"></i></button>
+             </div>
+          </div>
+
+          <!-- Transaksi Summary / Calculation -->
+          <div class="dashboard-metrics-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 30px;"
+            id="report-transaction-summary">
+            <div class="metric-card" style="padding: 16px; min-height: auto; gap: 4px;">
+              <span class="metric-label">Total Transaksi (Filter)</span>
+              <span class="metric-value" id="filter-tx-count" style="font-size: 20px;">0</span>
+            </div>
+            <div class="metric-card" style="padding: 16px; min-height: auto; gap: 4px;">
+              <span class="metric-label">Total Pendapatan (Filter)</span>
+              <span class="metric-value" id="filter-tx-revenue" style="font-size: 20px; color: var(--success);">Rp
+                0</span>
+            </div>
+            <div class="metric-card" style="padding: 16px; min-height: auto; gap: 4px;">
+              <span class="metric-label">Rata-rata Penjualan</span>
+              <span class="metric-value" id="filter-tx-avg" style="font-size: 20px; color: var(--primary);">Rp 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 5: Shift & Pengguna -->
+      <div class="tab-panel" id="panel-shift">
+        <div class="panel-content-scrollable">
+          <!-- Shift Overview Info -->
+          <div class="dashboard-charts-grid" style="grid-template-columns: 1.2fr 1.8fr; margin-bottom: 24px;">
+            <!-- Active Shift Details card -->
+            <div class="chart-card" style="min-height: auto;">
+              <span class="chart-title">Detail Shift Aktif Anda</span>
+              <div id="shift-active-details"
+                style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <!-- Filled dynamically -->
+              </div>
+            </div>
+
+            <!-- Shift Drawer Status Summary -->
+            <div class="chart-card" style="min-height: auto;">
+              <span class="chart-title">Status Kas Laci Transaksi</span>
+              <div id="shift-active-cash-summary" style="flex: 1;">
+                <!-- Filled dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- History Shifts Table -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 14px 0;">
+            <h3
+              style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 0;">
+              Rekap Histori Tutup Shift</h3>
+            <button class="btn-sidebar-shift" id="btn-reset-shift-history" style="width: auto; padding: 8px 16px;">
+              <i class="fa-solid fa-trash"></i> Reset Histori Shift
+            </button>
+          </div>
+          <div class="table-responsive-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID Shift</th>
+                  <th>Petugas Kasir</th>
+                  <th>Waktu Buka</th>
+                  <th>Waktu Tutup</th>
+                  <th style="text-align: right;">Kas Awal</th>
+                  <th style="text-align: right;">Kas Akhir Riil</th>
+                  <th style="text-align: right;">Selisih Laci</th>
+                  <th>Status</th>
+                  <th style="text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="shift-table-body">
+                <!-- Rendered Dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 6: Pengaturan -->
+      <div class="tab-panel" id="panel-pengaturan">
+        <div class="panel-content-scrollable">
+          <div class="dashboard-charts-grid" style="grid-template-columns: 1fr 1fr;">
+
+            <!-- Store Profile Setting -->
+            <div class="chart-card" style="min-height: auto; height: fit-content; gap: 14px;">
+              <span class="chart-title"><i class="fa-solid fa-store"></i> Profil Bisnis Toko</span>
+              <form id="settings-profile-form" style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="form-group">
+                  <label class="form-label">Logo Toko</label>
+                  <div style="display: flex; gap: 12px; align-items: center;">
+                    <img id="set-store-logo-preview" src=""
+                      style="width: 50px; height: 50px; border-radius: var(--radius-sm); object-fit: cover; background: var(--bg-primary); display: none;">
+                    <div id="set-store-logo-placeholder"
+                      style="width: 50px; height: 50px; border-radius: var(--radius-sm); background: var(--bg-primary); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 20px;">
+                      <i class="fa-solid fa-image"></i>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                      <input type="file" id="set-store-logo" accept="image/*" style="display: none;">
+                      <button type="button" class="btn-secondary"
+                        onclick="document.getElementById('set-store-logo').click()"
+                        style="padding: 6px 12px; font-size: 11px; background: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--border-glass); border-radius: var(--radius-sm); cursor: pointer;">Pilih
+                        Gambar Logo</button>
+                      <button type="button" class="btn-sidebar-shift" id="set-store-logo-remove"
+                        style="padding: 4px 12px; font-size: 11px; display: none;">Hapus Logo</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nama Toko / UMKM</label>
+                  <input type="text" class="form-control" id="set-store-name" placeholder="AeroPOS Store">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Alamat Lengkap</label>
+                  <textarea class="form-control" id="set-store-address" rows="3"
+                    placeholder="Jl. Raya No. 123..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nomor Kontak / WhatsApp</label>
+                  <input type="text" class="form-control" id="set-store-phone" placeholder="0812xxxxxxxx">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Catatan Kaki Struk (Footer Note)</label>
+                  <input type="text" class="form-control" id="set-store-footer"
+                    placeholder="Terima kasih atas kunjungan Anda!">
+                </div>
+                <button type="submit" class="btn-primary-action" style="width: fit-content; margin-top: 10px;">
+                  <i class="fa-solid fa-circle-check"></i> Simpan Profil Toko
+                </button>
+              </form>
+            </div>
+
+            <!-- Firebase Connection Config -->
+            <div class="chart-card" style="min-height: auto; height: fit-content; gap: 14px;">
+              <span class="chart-title"><i class="fa-solid fa-cloud"></i> Integrasi Database Firebase</span>
+
+              <div id="settings-firebase-disconnected">
+                <p style="font-size: 12px; line-height: 1.6; margin-bottom: 12px;">
+                  POS saat ini berjalan di <strong>Mode Demo (Local Storage)</strong>. Sambungkan database awan Firebase
+                  Realtime Database untuk real-time sinkronisasi, multi-perangkat, dan keamanan data POS.
+                </p>
+                <div class="form-group">
+                  <label class="form-label">Firebase Config JSON</label>
+                  <textarea class="form-control" id="set-firebase-json" rows="6" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'></textarea>
+                  <ul class="settings-instructions">
+                    <li>Buat Project di Firebase Console.</li>
+                    <li>Salin konfigurasi Firebase Web App SDK.</li>
+                    <li>Tempel format JSON di atas.</li>
+                  </ul>
+                </div>
+                <button type="button" class="btn-primary-action" id="btn-save-firebase-config"
+                  style="width: fit-content; margin-top: 10px;">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Sambungkan Firebase
+                </button>
+              </div>
+
+              <div id="settings-firebase-connected" style="display: none;">
+                <div
+                  style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 14px;">
+                  <div
+                    style="color: var(--success); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-check"></i> Firebase Terkoneksi
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: monospace;"
+                    id="settings-active-project-id">
+                    Project ID: ...
+                  </div>
+                </div>
+
+                <div
+                  style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 14px;">
+                  <div style="color: var(--warning); font-weight: 700; font-size: 12px;">Migrasi Data Lokal ke Firebase
+                  </div>
+                  <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    Unggah data demo produk, transaksi harian, dan data pelanggan di laptop ini ke dalam database awan
+                    Firebase Anda.
+                  </p>
+
+                  <!-- Sync Progress bar -->
+                  <div id="migration-progress-box" style="display: none; margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px;">
+                      <span>Mengunggah Data...</span>
+                      <span id="migration-progress-text">0%</span>
+                    </div>
+                    <div style="height: 6px; background: var(--bg-primary); border-radius: 3px; overflow: hidden;">
+                      <div id="migration-progress-bar" style="width: 0%; height: 100%; background: var(--success);">
+                      </div>
+                    </div>
+                  </div>
+
+                  <button type="button" class="btn-primary-action" id="btn-migrate-local-data"
+                    style="margin-top: 10px; background: var(--warning); color: var(--text-dark);">
+                    <i class="fa-solid fa-upload"></i> Mulai Unggah / Migrasi Data
+                  </button>
+                </div>
+
+                <button type="button" class="btn-sidebar-shift" id="btn-disconnect-firebase"
+                  style="width: fit-content; text-align: left; padding: 10px 18px;">
+                  <i class="fa-solid fa-power-off"></i> Putuskan Hubungan Firebase
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- JSON Export/Import Tools -->
+          <div class="chart-card" style="min-height: auto; margin-top: 20px;">
+            <span class="chart-title"><i class="fa-solid fa-database"></i> Utilitas Backup Database</span>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">Export seluruh database POS Anda
+              ke dalam berkas JSON atau reset ulang database POS ke kondisi bawaan awal.</p>
+
+            <div style="display: flex; gap: 12px;">
+              <button class="btn-primary-action" id="btn-export-backup" style="background: var(--bg-tertiary);">
+                <i class="fa-solid fa-download"></i> Ekspor Data (JSON)
+              </button>
+              <button class="btn-sidebar-shift" id="btn-reset-db">
+                <i class="fa-solid fa-trash"></i> Reset Ulang Basis Data POS
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= MODAL WINDOWS ================= -->
+
+  <!-- Modal 1: CRUD Product Form -->
+  <div class="modal-overlay" id="modal-product">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-product-title">Tambah Produk Baru</h3>
+        <button class="btn-close-modal" data-close="modal-product">&times;</button>
+      </div>
+      <form id="form-product">
+        <input type="hidden" id="prod-id" value="">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Barcode / SKU Barcode</label>
+            <input type="text" class="form-control" id="prod-sku" required placeholder="Contoh: 899123456001">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nama Produk</label>
+            <input type="text" class="form-control" id="prod-name" required placeholder="Contoh: Nasi Goreng Gila">
+          </div>
+          <div class="form-row-double">
+            <div class="form-group">
+              <label class="form-label">Kategori</label>
+              <select class="form-control" id="prod-category" required>
+                <option value="Makanan">Makanan</option>
+                <option value="Minuman">Minuman</option>
+                <option value="Cemilan">Cemilan</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Stok Fisik</label>
+              <input type="number" class="form-control" id="prod-stock" required min="0" value="10">
+            </div>
+          </div>
+          <div class="form-row-double">
+            <div class="form-group">
+              <label class="form-label">Harga Beli Modal (Rp)</label>
+              <input type="number" class="form-control" id="prod-buy-price" required min="0" placeholder="10000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Harga Jual Kasir (Rp)</label>
+              <input type="number" class="form-control" id="prod-sell-price" required min="0" placeholder="15000">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="modal-product">Batal</button>
+          <button type="submit" class="btn-primary-action">Simpan Produk</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: CRM Customer Form -->
+  <div class="modal-overlay" id="modal-customer">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-customer-title">Tambah Pelanggan Baru</h3>
+        <button class="btn-close-modal" data-close="modal-customer">&times;</button>
+      </div>
+      <form id="form-customer">
+        <input type="hidden" id="cust-id" value="">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nama Pelanggan</label>
+            <input type="text" class="form-control" id="cust-name" required placeholder="Masukkan Nama Lengkap">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nomor Handphone (WhatsApp)</label>
+            <input type="text" class="form-control" id="cust-phone" required placeholder="Contoh: 08123456789">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="modal-customer">Batal</button>
+          <button type="submit" class="btn-primary-action">Simpan Pelanggan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Shift Start Form -->
+  <div class="modal-overlay" id="modal-shift-start">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Buka Shift Laci Baru</h3>
+      </div>
+      <form id="form-shift-start">
+        <div class="modal-body">
+          <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+            Masukkan saldo modal kas laci awal untuk melacak kembalian tunai di dalam laci uang sebelum transaksi kasir
+            pertama dimulai.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Modal Kas Laci Awal (Rp)</label>
+            <input type="number" class="form-control" id="shift-starting-cash" required value="100000" min="0">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn-primary-action" style="width: 100%; justify-content: center;">
+            <i class="fa-solid fa-door-open"></i> AKTIFKAN & BUKA SHIFT
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Shift Close Form -->
+  <div class="modal-overlay" id="modal-shift-end">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Konfirmasi & Tutup Shift Kasir</h3>
+        <button class="btn-close-modal" data-close="modal-shift-end">&times;</button>
+      </div>
+      <form id="form-shift-end">
+        <div class="modal-body">
+          <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+            Berikut adalah kalkulasi penjualan sistem selama shift berlangsung. Masukkan jumlah uang tunai fisik aktual
+            di laci Anda saat ini.
+          </p>
+
+          <div class="shift-details-rows">
+            <div class="shift-detail-row">
+              <span>Modal Kas Laci Awal:</span>
+              <strong id="shift-end-starting-cash">Rp 0</strong>
+            </div>
+            <div class="shift-detail-row">
+              <span>Penjualan Tunai:</span>
+              <strong id="shift-end-cash-sales">Rp 0</strong>
+            </div>
+            <div class="shift-detail-row">
+              <span>Penjualan Non-Tunai:</span>
+              <strong id="shift-end-noncash-sales">Rp 0</strong>
+            </div>
+            <div class="shift-detail-row"
+              style="background: rgba(255, 255, 255, 0.02); padding: 8px 4px; border-radius: 4px;">
+              <span>Total Estimasi Kas di Laci:</span>
+              <strong style="color: var(--success);" id="shift-end-expected-cash">Rp 0</strong>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 14px;">
+            <label class="form-label">Uang Kas Fisik Aktual di Laci (Rp)</label>
+            <input type="number" class="form-control" id="shift-actual-cash" required
+              placeholder="Hitung dan input kas fisik aktual">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Catatan Tutup Shift (Opsional)</label>
+            <textarea class="form-control" id="shift-notes" rows="2"
+              placeholder="Catat perbedaan laci uang, kendala shift..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="modal-shift-end">Batal</button>
+          <button type="submit" class="btn-sidebar-shift" style="background: var(--danger); color: white;">
+            <i class="fa-solid fa-door-closed"></i> TUTUP SHIFT KASIR
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 5: Checkout Payment Box -->
+  <div class="modal-overlay" id="modal-checkout">
+    <div class="modal-content payment-modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Pembayaran Transaksi</h3>
+        <button class="btn-close-modal" data-close="modal-checkout">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="payment-grid-wrapper">
+          <!-- Left: Select payment method -->
+          <div>
+            <span class="input-label-pos" style="display: block; margin-bottom: 10px;">Metode Pembayaran</span>
+            <div class="payment-methods-list">
+              <button class="payment-method-card-btn active" data-method="Tunai">
+                <i class="fa-solid fa-wallet"></i>
+                <div style="text-align: left;">
+                  <div style="font-weight: 700; font-size: 13px;">Bayar Tunai</div>
+                  <div style="font-size: 10px;">Cash payment drawer</div>
+                </div>
+              </button>
+              <button class="payment-method-card-btn" data-method="Debit/Kredit">
+                <i class="fa-solid fa-credit-card"></i>
+                <div style="text-align: left;">
+                  <div style="font-weight: 700; font-size: 13px;">Debit / Kredit</div>
+                  <div style="font-size: 10px;">Card EDC terminal</div>
+                </div>
+              </button>
+              <button class="payment-method-card-btn" data-method="QRIS/E-Wallet">
+                <i class="fa-solid fa-qrcode"></i>
+                <div style="text-align: left;">
+                  <div style="font-weight: 700; font-size: 13px;">QRIS / E-Wallet</div>
+                  <div style="font-size: 10px;">Gopay, OVO, Dana, QRIS</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Calculator and amounts -->
+          <div class="checkout-details-column">
+            <div class="bill-amount-display">
+              <div class="bill-label">TOTAL TAGIHAN</div>
+              <div class="bill-val" id="checkout-total-bill">Rp 0</div>
+            </div>
+
+            <!-- Cash Input Panel (Displays for Tunai) -->
+            <div class="form-group" id="checkout-cash-panel">
+              <label class="form-label">Uang Diterima Kasir (Rp) (F8)</label>
+              <input type="number" class="form-control" id="checkout-cash-received"
+                style="font-size: 16px; font-weight: 700; font-family: monospace;" placeholder="Input Nominal Uang">
+
+              <!-- Quick Cash Chips -->
+              <div class="quick-cash-grid" id="checkout-quick-cash">
+                <!-- Loaded dynamically on bill amount -->
+              </div>
+            </div>
+
+            <!-- QRIS Simulation display (Displays for QRIS) -->
+            <div class="qris-simulation-box" id="checkout-qris-panel" style="display: none;">
+              <span class="qris-text">Scan QRIS Kasir</span>
+              <div class="qris-mock-qr"></div>
+              <span style="font-size: 10px; color: #64748b;">Simulasi Kode Dinamis QRISKu</span>
+            </div>
+
+            <!-- Card Transaction Info (Displays for Debit) -->
+            <div class="form-group" id="checkout-card-panel"
+              style="display: none; padding: 12px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass); border-radius: var(--radius-sm);">
+              <label class="form-label">Lakukan Gesek Kartu di Mesin EDC</label>
+              <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 4px;">
+                Gesek kartu debit/kredit pelanggan pada terminal EDC terpisah, pastikan transaksi berhasil di EDC,
+                kemudian selesaikan struk.
+              </p>
+            </div>
+
+            <!-- Cash Return panel -->
+            <div class="change-amount-display" id="checkout-change-panel">
+              <span class="change-label">Kembalian:</span>
+              <span class="change-val" id="checkout-change-amount">Rp 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" data-close="modal-checkout">Batal</button>
+        <button type="button" class="btn-pay-action" id="checkout-submit-btn" style="width: auto; padding: 10px 24px;">
+          <i class="fa-solid fa-print"></i> PROSES BAYAR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 6: Guide Popup for Firebase / Setup Details -->
+  <div class="modal-overlay" id="modal-setup-guide">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Panduan Koneksi Cloud</h3>
+        <button class="btn-close-modal" data-close="modal-setup-guide">&times;</button>
+      </div>
+      <div class="modal-body" style="font-size: 13px; line-height: 1.6;">
+        <h4 style="margin-bottom: 8px; color: var(--primary);">Bagaimana cara menyambungkan Firebase?</h4>
+        <ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+          <li>Kunjungi <a href="https://console.firebase.google.com/" target="_blank"
+              style="color: var(--success); text-decoration: underline;">Firebase Console</a>.</li>
+          <li>Buat proyek baru, lalu tambahkan aplikasi web ke dalam proyek tersebut.</li>
+          <li>Salin potongan objek konfigurasi Web SDK. Formatnya seperti ini:
+            <pre
+              style="background: var(--bg-primary); border: 1px solid var(--border-glass); padding: 6px; border-radius: 4px; margin-top: 4px; font-family: monospace; font-size: 10px; overflow-x: auto; color: var(--text-muted);">
+{
+  "apiKey": "AIzaSy...",
+  "authDomain": "app.firebaseapp.com",
+  "projectId": "app-project-id",
+  ...
+}</pre>
+          </li>
+          <li>Pergi ke menu <strong>Pengaturan</strong> di AeroPOS, tempel kode JSON di atas dan klik <strong>Sambungkan
+              Firebase</strong>.</li>
+          <li><strong>PENTING (Aturan Realtime Database)</strong>: Di Firebase Console Anda, pilih <strong>Realtime
+              Database</strong> &gt; tab <strong>Rules</strong> (Aturan), ubah konfigurasinya menjadi publik agar
+            sinkronisasi dari kasir diizinkan:
+            <pre
+              style="background: var(--bg-primary); border: 1px solid var(--border-glass); padding: 6px; border-radius: 4px; margin-top: 4px; font-family: monospace; font-size: 9px; overflow-x: auto; color: var(--text-muted);">
+{
+  "rules": {
+    ".read": "now < 1781974800000", // Sampai 2026-06-21
+    ".write": "now < 1781974800000" // Sampai 2026-06-21
+  }
+}</pre>
+            Lalu klik <strong>Publish</strong>.
+          </li>
+          <li>Unggah data demo awal ke awan Firebase dengan mengeklik tombol <strong>Migrasi Data</strong>.</li>
+        </ol>
+        <p
+          style="font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-glass); padding-top: 10px;">
+          *Data Anda akan tetap tersimpan di browser secara offline walaupun koneksi internet terputus, dan otomatis
+          disinkronkan kembali saat online.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary-action" data-close="modal-setup-guide"
+          style="width: 100%; justify-content: center;">Saya Mengerti</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-holder"></div>
+
+  <!-- Hidden Printable Receipts iFrame holder -->
+  <div id="print-iframe-holder"></div>
+
+  <!-- Scripts -->
+  <script src="local-db.js"></script>
+  <script type="module" src="firebase-db.js"></script>
+  <!-- Chart.js for reports -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Modal Edit Selisih Shift -->
+  <div class="modal-overlay" id="modal-edit-shift">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-to-square"></i> Koreksi Selisih Laci</h3>
+        <button class="btn-icon" data-close="modal-edit-shift"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-edit-shift">
+        <div class="modal-body">
+          <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+            Masukkan jumlah kas fisik aktual baru dan berikan kode verifikasi unik dari Kasir.
+          </p>
+          <input type="hidden" id="edit-shift-id">
+          
+          <div class="form-group" style="margin-top: 14px;">
+            <label class="form-label">Uang Kas Fisik Aktual di Laci (Rp)</label>
+            <input type="number" class="form-control" id="edit-shift-actual-cash" required placeholder="Hitung dan input kas fisik aktual">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Kode Otorisasi Harian (Lihat di layar Kasir)</label>
+            <input type="text" class="form-control" id="edit-shift-auth-code" required placeholder="Contoh: A1B2C3" style="text-transform: uppercase;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="modal-edit-shift">Batal</button>
+          <button type="submit" class="btn-primary-action" style="width: auto; padding: 10px 24px;">Simpan Koreksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Bulk Edit Stock -->
+  <div class="modal-overlay" id="modal-bulk-stock">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-layer-group"></i> Tambah Stok Massal</h3>
+        <button class="btn-icon" data-close="modal-bulk-stock"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-bulk-stock">
+        <div class="modal-body">
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
+            Masukkan jumlah stok yang akan <strong>ditambahkan</strong> ke seluruh produk yang ada di database. (Misal: ketik 10, maka setiap produk akan bertambah stoknya sebanyak 10).
+          </p>
+          <div class="form-group">
+            <label class="form-label">Jumlah Stok yang Ditambahkan</label>
+            <input type="number" class="form-control" id="bulk-stock-amount" required placeholder="Contoh: 10" min="1">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="modal-bulk-stock">Batal</button>
+          <button type="submit" class="btn-primary-action">Terapkan Massal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Print Report Options -->
+  <div class="modal-overlay" id="modal-print-report">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-print"></i> Opsi Cetak Laporan</h3>
+        <button class="btn-icon" data-close="modal-print-report"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-print-report">
+        <div class="modal-body">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;">Pilih bagian laporan yang ingin Anda cetak:</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="print-opt-summary" checked>
+              <span style="font-weight: 500;">Ringkasan Metrik (Total Transaksi, Pendapatan, Laba)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="print-opt-history" checked>
+              <span style="font-weight: 500;">Riwayat Transaksi Terakhir (Tabel)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" id="print-opt-chart">
+              <span style="font-weight: 500;">Grafik Analitik (Chart Penjualan & Produk Terlaris)</span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" data-close="modal-print-report">Batal</button>
+          <button type="submit" class="btn-primary-action"><i class="fa-solid fa-print"></i> Cetak Sekarang</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Controller App JS -->
+  <script type="module" src="app.js"></script>
+</body>
+
+</html>
