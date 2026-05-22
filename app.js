@@ -89,10 +89,24 @@ const DB = {
     if (window.FirebaseDB && window.FirebaseDB.isConnected) {
       window.FirebaseDB.saveCustomer(savedLocal).catch(err => {
         console.error("Gagal menyinkronkan pelanggan ke Firebase:", err);
-        showToast("Sinkronisasi pelanggan ke Firebase gagal, disimpan lokal.", "warning");
+        showToast("Sinkronisasi pelanggan ke Firebase tertunda (offline mode).", "warning");
       });
     }
     return savedLocal;
+  },
+
+  async deleteCustomer(id) {
+    window.LocalDB.deleteCustomer(id);
+
+    // Update in-memory cache state immediately
+    state.customers = state.customers.filter(c => c.id !== id);
+
+    if (window.FirebaseDB && window.FirebaseDB.isConnected) {
+      window.FirebaseDB.deleteCustomer(id).catch(err => {
+        console.error("Gagal menghapus pelanggan di Firebase:", err);
+        showToast("Sinkronisasi penghapusan pelanggan ke Firebase gagal.", "warning");
+      });
+    }
   },
 
   async getTransactions() {
@@ -234,7 +248,15 @@ function formatRupiah(number) {
 
 // Generate Daily Authorization Code
 function getDailyAuthCode() {
-  return btoa(new Date().toISOString().split('T')[0] + "AEROPOS").substring(0, 6).toUpperCase();
+  const now = new Date();
+  const day = now.getDate();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  
+  const part1 = (day * 27 + month * 11 + year).toString(36);
+  const part2 = (day * year + month * 47).toString(36);
+  
+  return (part1 + part2 + "XYZ").substring(0, 6).toUpperCase();
 }
 
 // Show custom toast notifications
@@ -264,6 +286,34 @@ function showToast(message, type = 'success') {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);
   }, 3500);
+}
+
+// Init Live Clock
+function initLiveClock() {
+  const dateEl = document.getElementById('clock-date');
+  const timeEl = document.getElementById('clock-time');
+  if (!dateEl || !timeEl) return;
+
+  const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+  function updateClock() {
+    const now = new Date();
+    const dayName = days[now.getDay()];
+    const date = now.getDate().toString().padStart(2, '0');
+    const month = months[now.getMonth()];
+    const year = now.getFullYear();
+    
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
+
+    dateEl.textContent = `${dayName}, ${date} ${month} ${year}`;
+    timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+  }
+
+  updateClock(); // initial call
+  setInterval(updateClock, 1000);
 }
 
 // Helper to safely bind events to DOM elements that may not exist on all roles/pages
@@ -438,6 +488,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Periodically check Firebase Connection Status to update UI
   setInterval(updateConnectionStatusUI, 3000);
+
+  initLiveClock();
 });
 
 // Refresh memory data from DB using parallel Promise.all
@@ -556,8 +608,23 @@ function updateSidebarUserBadge() {
   const name = document.getElementById('sidebar-user-name');
   const role = document.getElementById('sidebar-user-role');
 
-  if (avatar && state.currentUser) avatar.textContent = state.currentUser.name.charAt(0);
-  if (name && state.currentUser) name.textContent = state.currentUser.name;
+  const isAdmin = (state.currentUser && state.currentUser.role === 'Admin');
+
+  const displayName = (!isAdmin && state.activeShift && state.activeShift.cashierName) 
+    ? state.activeShift.cashierName 
+    : (state.currentUser ? state.currentUser.name : 'Unknown');
+
+  if (avatar) {
+    if (!isAdmin && state.activeShift && state.activeShift.cashierPhoto) {
+      avatar.innerHTML = `<img src="${state.activeShift.cashierPhoto}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`;
+      avatar.style.border = '2px solid var(--success)';
+    } else {
+      avatar.innerHTML = displayName.charAt(0).toUpperCase();
+      avatar.style.border = '2px solid var(--primary)';
+    }
+  }
+
+  if (name) name.textContent = displayName;
   if (role && state.currentUser) role.textContent = state.currentUser.role;
 }
 
@@ -581,6 +648,8 @@ function checkActiveShiftState() {
       switchTab('shift');
     }
   }
+
+  updateSidebarUserBadge();
 }
 
 // SPA Routing switcher
@@ -835,26 +904,46 @@ function recalculateCartMath() {
 
   const subtotal = state.cart.reduce((sum, item) => sum + item.subtotal, 0);
   
-  // Calculate discount
+  // Calculate manual discount
   const discStr = discountInput.value.trim();
-  let discountVal = 0;
+  let manualDiscountVal = 0;
   if (discStr) {
     if (discStr.endsWith('%')) {
       const percentage = parseFloat(discStr.replace('%', '')) || 0;
-      discountVal = Math.round(subtotal * (percentage / 100));
+      manualDiscountVal = Math.round(subtotal * (percentage / 100));
     } else {
-      discountVal = parseFloat(discStr) || 0;
+      manualDiscountVal = parseFloat(discStr) || 0;
     }
   }
-  discountVal = Math.min(subtotal, Math.max(0, discountVal)); // bounds checkout discount
+
+  // Calculate Loyalty Points discount
+  const customerSelect = document.getElementById('cart-customer-select');
+  const loyaltyCheckbox = document.getElementById('use-loyalty-points-checkbox');
+  let loyaltyDiscountVal = 0;
+  
+  if (customerSelect && customerSelect.value && loyaltyCheckbox && loyaltyCheckbox.checked) {
+    const customer = state.customers.find(c => c.id === customerSelect.value);
+    if (customer && customer.points) {
+      loyaltyDiscountVal = customer.points;
+    }
+  }
+
+  let pointsToDeduct = loyaltyDiscountVal;
+  let totalDiscountVal = manualDiscountVal + loyaltyDiscountVal;
+  
+  if (totalDiscountVal > subtotal) {
+    totalDiscountVal = subtotal;
+  }
+  
+  state.usedLoyaltyPoints = pointsToDeduct; // Store globally for checkout
 
   // Tax percentage PPN (default 11)
   const taxPct = parseFloat(taxInput.value) || 0;
-  const taxableAmount = Math.max(0, subtotal - discountVal);
+  const taxableAmount = Math.max(0, subtotal - totalDiscountVal);
   const taxVal = Math.round(taxableAmount * (taxPct / 100));
   
   const grandTotal = taxableAmount + taxVal;
-  updateCartTotals(subtotal, discountVal, taxVal, grandTotal);
+  updateCartTotals(subtotal, totalDiscountVal, taxVal, grandTotal);
 }
 
 function updateCartTotals(subtotal, discount, tax, grandTotal) {
@@ -900,15 +989,29 @@ function initCheckoutModal() {
   const subtotal = state.cart.reduce((sum, item) => sum + item.subtotal, 0);
   const discountInput = document.getElementById('cart-discount-input');
   const discStr = discountInput ? discountInput.value.trim() : '0';
-  let discountVal = 0;
+  let manualDiscountVal = 0;
   if (discStr) {
     if (discStr.endsWith('%')) {
-      discountVal = Math.round(subtotal * (parseFloat(discStr.replace('%', '')) / 100));
+      manualDiscountVal = Math.round(subtotal * (parseFloat(discStr.replace('%', '')) / 100));
     } else {
-      discountVal = parseFloat(discStr) || 0;
+      manualDiscountVal = parseFloat(discStr) || 0;
     }
   }
-  discountVal = Math.min(subtotal, Math.max(0, discountVal));
+
+  const loyaltyCheckbox = document.getElementById('use-loyalty-points-checkbox');
+  const customerSelect = document.getElementById('cart-customer-select');
+  let loyaltyDiscountVal = 0;
+  if (customerSelect && customerSelect.value && loyaltyCheckbox && loyaltyCheckbox.checked) {
+    const customer = state.customers.find(c => c.id === customerSelect.value);
+    if (customer && customer.points) {
+      loyaltyDiscountVal = customer.points;
+    }
+  }
+
+  let discountVal = manualDiscountVal + loyaltyDiscountVal;
+  if (discountVal > subtotal) {
+    discountVal = subtotal;
+  }
   const taxInput = document.getElementById('cart-tax-input');
   const taxPct = taxInput ? parseFloat(taxInput.value) || 0 : 0;
   const taxableAmount = Math.max(0, subtotal - discountVal);
@@ -1058,15 +1161,30 @@ function validateCashReceived() {
   const subtotal = state.cart.reduce((sum, item) => sum + item.subtotal, 0);
   const discountInput = document.getElementById('cart-discount-input');
   const discStr = discountInput ? discountInput.value.trim() : '0';
-  let discountVal = 0;
+  let manualDiscountVal = 0;
   if (discStr) {
     if (discStr.endsWith('%')) {
-      discountVal = Math.round(subtotal * (parseFloat(discStr.replace('%', '')) / 100));
+      manualDiscountVal = Math.round(subtotal * (parseFloat(discStr.replace('%', '')) / 100));
     } else {
-      discountVal = parseFloat(discStr) || 0;
+      manualDiscountVal = parseFloat(discStr) || 0;
     }
   }
-  discountVal = Math.min(subtotal, Math.max(0, discountVal));
+
+  const loyaltyCheckbox = document.getElementById('use-loyalty-points-checkbox');
+  const customerSelect = document.getElementById('cart-customer-select');
+  let loyaltyDiscountVal = 0;
+  if (customerSelect && customerSelect.value && loyaltyCheckbox && loyaltyCheckbox.checked) {
+    const customer = state.customers.find(c => c.id === customerSelect.value);
+    if (customer && customer.points) {
+      loyaltyDiscountVal = customer.points;
+    }
+  }
+
+  let discountVal = manualDiscountVal + loyaltyDiscountVal;
+  if (discountVal > subtotal) {
+    discountVal = subtotal;
+  }
+  
   const taxInput = document.getElementById('cart-tax-input');
   const taxPct = taxInput ? parseFloat(taxInput.value) || 0 : 0;
   const taxableAmount = Math.max(0, subtotal - discountVal);
@@ -1095,15 +1213,32 @@ async function processPOSCheckout() {
   const subtotal = state.cart.reduce((sum, item) => sum + item.subtotal, 0);
   const discountInput = document.getElementById('cart-discount-input');
   const discStr = discountInput ? discountInput.value.trim() : '0';
-  let discountVal = 0;
+  let manualDiscountVal = 0;
   if (discStr) {
     if (discStr.endsWith('%')) {
-      discountVal = Math.round(subtotal * (parseFloat(discStr.replace('%', '')) / 100));
+      manualDiscountVal = Math.round(subtotal * (parseFloat(discStr.replace('%', '')) / 100));
     } else {
-      discountVal = parseFloat(discStr) || 0;
+      manualDiscountVal = parseFloat(discStr) || 0;
     }
   }
-  discountVal = Math.min(subtotal, Math.max(0, discountVal));
+
+  const loyaltyCheckbox = document.getElementById('use-loyalty-points-checkbox');
+  const customerSelect = document.getElementById('cart-customer-select');
+  let loyaltyDiscountVal = 0;
+  if (customerSelect && customerSelect.value && loyaltyCheckbox && loyaltyCheckbox.checked) {
+    const customer = state.customers.find(c => c.id === customerSelect.value);
+    if (customer && customer.points) {
+      loyaltyDiscountVal = customer.points;
+    }
+  }
+
+  let pointsToDeduct = loyaltyDiscountVal;
+  let discountVal = manualDiscountVal + loyaltyDiscountVal;
+  if (discountVal > subtotal) {
+    discountVal = subtotal;
+  }
+  
+  state.usedLoyaltyPoints = pointsToDeduct;
   const taxInput = document.getElementById('cart-tax-input');
   const taxPct = taxInput ? parseFloat(taxInput.value) || 0 : 0;
   const taxableAmount = Math.max(0, subtotal - discountVal);
@@ -1118,7 +1253,6 @@ async function processPOSCheckout() {
   }
   const cashChange = cashReceived - total;
 
-  const customerSelect = document.getElementById('cart-customer-select');
   const customerId = customerSelect ? customerSelect.value : '';
   const customerObj = state.customers.find(c => c.id === customerId);
 
@@ -1130,6 +1264,7 @@ async function processPOSCheckout() {
     items: [...state.cart],
     subtotal,
     discount: discountVal,
+    usedPoints: state.usedLoyaltyPoints || 0,
     tax: taxVal,
     total,
     totalCost,
@@ -1146,14 +1281,21 @@ async function processPOSCheckout() {
     // Save to Database (this automatically deducts stock and awards CRM points)
     await DB.saveTransaction(transaction);
     
-    // Auto add points to local state for rendering
-    if (customerId && total >= 10000) {
-      const pointsAdded = Math.floor(total / 10000);
+    // Auto update points to local state for rendering
+    if (customerId) {
       const custIndex = state.customers.findIndex(c => c.id === customerId);
       if (custIndex !== -1) {
-        state.customers[custIndex].points += pointsAdded;
+        if (state.usedLoyaltyPoints) {
+          state.customers[custIndex].points -= state.usedLoyaltyPoints;
+        }
+        if (total >= 10000) {
+          const pointsAdded = Math.floor(total / 10000);
+          state.customers[custIndex].points += pointsAdded;
+        }
       }
     }
+
+    state.usedLoyaltyPoints = 0; // Reset after usage
 
     // Trigger printed invoice layout to thermal printer
     triggerThermalPrint(transaction);
@@ -1279,7 +1421,7 @@ function triggerThermalPrint(tx) {
         
         <div class="footer">
           ${state.storeProfile.footer}
-          <br>POWERED BY AEROPOS
+          <br>by kenzo project
         </div>
       </div>
     </body>
@@ -1429,6 +1571,19 @@ async function deleteProductItem(productId) {
   }
 }
 
+// Delete customer handler
+async function deleteCustomerItem(customerId) {
+  if (confirm("Apakah Anda yakin ingin menghapus pelanggan ini? Tindakan ini tidak dapat dibatalkan.")) {
+    try {
+      await DB.deleteCustomer(customerId);
+      renderCustomerTable();
+      showToast('Pelanggan berhasil dihapus!', 'success');
+    } catch (e) {
+      showToast('Gagal menghapus pelanggan.', 'error');
+    }
+  }
+}
+
 // ================= PANEL 3: CRM ENGINE =================
 
 function renderCustomerTable() {
@@ -1462,6 +1617,7 @@ function renderCustomerTable() {
       <td style="text-align: center;">
         <div class="action-buttons-cell" style="justify-content: center;">
           <button class="btn-icon-action" onclick="window.App.editCustomerItem('${c.id}')" title="Edit Pelanggan"><i class="fa-solid fa-pencil"></i></button>
+          <button class="btn-icon-action delete" onclick="window.App.deleteCustomerItem('${c.id}')" title="Hapus Pelanggan"><i class="fa-solid fa-trash"></i></button>
         </div>
       </td>
     </tr>
@@ -2616,6 +2772,28 @@ function setupButtonListeners() {
     });
   });
 
+  // Loyalty events
+  bindEvent('cart-customer-select', 'change', (e) => {
+    const customerId = e.target.value;
+    const customer = state.customers.find(c => c.id === customerId);
+    const container = document.getElementById('loyalty-discount-container');
+    const display = document.getElementById('loyalty-points-display');
+    const checkbox = document.getElementById('use-loyalty-points-checkbox');
+
+    if (customer && customer.points > 0) {
+      if (container) container.style.display = 'flex';
+      if (display) display.textContent = customer.points;
+    } else {
+      if (container) container.style.display = 'none';
+      if (checkbox) checkbox.checked = false;
+    }
+    recalculateCartMath();
+  });
+
+  bindEvent('use-loyalty-points-checkbox', 'change', () => {
+    recalculateCartMath();
+  });
+
   // Pay Cash change events
   bindEvent('checkout-cash-received', 'input', () => {
     validateCashReceived();
@@ -2794,7 +2972,10 @@ window.App = {
   editProductItem,
   deleteProductItem,
   editCustomerItem,
+  deleteCustomerItem,
+  printReport,
   reprintTransaction,
+  renderCustomerTable,
   initOpenShiftModal,
   initCloseShiftModal,
   initEditShiftModal,

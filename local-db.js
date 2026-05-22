@@ -174,6 +174,11 @@ const LocalDB = {
     localStorage.setItem("aeropos_customers", JSON.stringify(customers));
     return customer;
   },
+  deleteCustomer(id) {
+    const customers = this.getCustomers();
+    const filtered = customers.filter(c => c.id !== id);
+    localStorage.setItem("aeropos_customers", JSON.stringify(filtered));
+  },
   addLoyaltyPoints(customerId, pointsToAdd) {
     if (!customerId) return;
     const customers = this.getCustomers();
@@ -200,6 +205,11 @@ const LocalDB = {
     transaction.items.forEach(item => {
       this.updateStock(item.productId, item.qty);
     });
+
+    // Deduct used loyalty points if applicable
+    if (transaction.customerId && transaction.usedPoints) {
+      this.addLoyaltyPoints(transaction.customerId, -transaction.usedPoints);
+    }
 
     // Auto add CRM points (1 point per Rp 10.000 spent)
     if (transaction.customerId && transaction.total >= 10000) {

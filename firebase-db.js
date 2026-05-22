@@ -219,6 +219,17 @@ const FirebaseDB = {
     }
   },
 
+  async deleteCustomer(id) {
+    if (!isConnected) return;
+    try {
+      const { ref, remove } = fstore;
+      await remove(ref(db, "customers/" + id));
+    } catch (e) {
+      console.error("Firebase deleteCustomer error:", e);
+      throw e;
+    }
+  },
+
   async addLoyaltyPoints(customerId, pointsToAdd) {
     if (!isConnected || !customerId) return;
     try {
@@ -269,9 +280,14 @@ const FirebaseDB = {
         FirebaseDB.updateStock(item.productId, item.qty);
       });
 
-      if (transaction.customerId && transaction.total >= 10000) {
-        const points = Math.floor(transaction.total / 10000);
-        FirebaseDB.addLoyaltyPoints(transaction.customerId, points);
+      if (transaction.customerId) {
+        if (transaction.usedPoints) {
+          FirebaseDB.addLoyaltyPoints(transaction.customerId, -transaction.usedPoints);
+        }
+        if (transaction.total >= 10000) {
+          const points = Math.floor(transaction.total / 10000);
+          FirebaseDB.addLoyaltyPoints(transaction.customerId, points);
+        }
       }
 
       return transactionData;
